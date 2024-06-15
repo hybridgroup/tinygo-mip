@@ -8,9 +8,6 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
-// replace this with the MAC address of the Bluetooth peripheral you want to connect to.
-const deviceAddress = "D0:39:72:A2:4E:55"
-
 var (
 	adapter = bluetooth.DefaultAdapter
 	device  bluetooth.Device
@@ -59,7 +56,7 @@ func main() {
 
 func scanHandler(a *bluetooth.Adapter, d bluetooth.ScanResult) {
 	println("device:", d.Address.String(), d.RSSI, d.LocalName())
-	if d.Address.String() == deviceAddress {
+	if d.Address.String() == connectAddress() {
 		a.StopScan()
 		ch <- d
 	}
