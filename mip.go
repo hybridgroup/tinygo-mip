@@ -47,8 +47,10 @@ func (r *Robot) Start() (err error) {
 
 	r.receive = &srvcs[0]
 	r.send = &srvcs[1]
-	println("found mip receive service", r.receive.UUID().String())
-	println("found mip send service", r.send.UUID().String())
+	if debug {
+		println("found mip receive service", r.receive.UUID().String())
+		println("found mip send service", r.send.UUID().String())
+	}
 
 	chars, err := r.receive.DiscoverCharacteristics([]bluetooth.UUID{
 		mipReceiveDataNotifyCharacteristic,
@@ -71,7 +73,11 @@ func (r *Robot) Start() (err error) {
 	return
 }
 
-// Stops stops the MIP.
+func (r *Robot) Halt() (err error) {
+	return
+}
+
+// Stops stops the MIP from moving.
 func (r *Robot) Stop() (err error) {
 	buf := []byte{Stop}
 	_, err = r.sendData.WriteWithoutResponse(buf)
@@ -82,6 +88,30 @@ func (r *Robot) Stop() (err error) {
 // SetChestLED sets the chest LED of the MiP
 func (r *Robot) SetChestLED(c color.RGBA) (err error) {
 	buf := []byte{SetChestLED, c.R, c.G, c.B}
+	_, err = r.sendData.WriteWithoutResponse(buf)
+
+	return err
+}
+
+// FlashChestLED flashes the chest LED of the MiP
+func (r *Robot) FlashChestLED(c color.RGBA, on, off int) (err error) {
+	buf := []byte{FlashChestLED, c.R, c.G, c.B, byte(on), byte(off)}
+	_, err = r.sendData.WriteWithoutResponse(buf)
+
+	return err
+}
+
+// SetHeadLED sets the head LEDs of the MiP
+func (r *Robot) SetHeadLED(l1, l2, l3, l4 int) (err error) {
+	buf := []byte{SetHeadLED, byte(l1), byte(l2), byte(l3), byte(l4)}
+	_, err = r.sendData.WriteWithoutResponse(buf)
+
+	return err
+}
+
+// GetUp tells the MiP to stand up.
+func (r *Robot) GetUp(stand int) (err error) {
+	buf := []byte{GetUp, byte(stand)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return err
@@ -117,4 +147,12 @@ func (r *Robot) TurnRight(angle uint8, speed uint8) (err error) {
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return
+}
+
+// SetGameMode tells the MiP to start playing a game using a [GameMode].
+func (r *Robot) SetGameMode(mode GameMode) (err error) {
+	buf := []byte{SetGameMode, byte(mode)}
+	_, err = r.sendData.WriteWithoutResponse(buf)
+
+	return err
 }
