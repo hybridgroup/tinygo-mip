@@ -49,3 +49,22 @@ const (
 	TurnLeftAngle          = 0x73
 	TurnRightAngle         = 0x74
 )
+
+// HeadLED states
+type HeadLED byte
+
+const (
+	HeadLEDOff HeadLED = iota
+	HeadLEDOn
+	HeadLEDBlinkSlow
+	HeadLEDBlinkFast
+)
+
+// GetUpMode states
+type GetUpMode byte
+
+const (
+	GetUpModeBack GetUpMode = iota
+	GetUpModeFront
+	GetUpModeAny
+)

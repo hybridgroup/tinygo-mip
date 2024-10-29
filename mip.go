@@ -101,49 +101,69 @@ func (r *Robot) FlashChestLED(c color.RGBA, on, off int) (err error) {
 	return err
 }
 
-// SetHeadLED sets the head LEDs of the MiP
-func (r *Robot) SetHeadLED(l1, l2, l3, l4 int) (err error) {
+// SetHeadLED sets the head LEDs of the MiP based on [HeadLED] values.
+func (r *Robot) SetHeadLED(l1, l2, l3, l4 HeadLED) (err error) {
 	buf := []byte{SetHeadLED, byte(l1), byte(l2), byte(l3), byte(l4)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return err
 }
 
-// GetUp tells the MiP to stand up.
-func (r *Robot) GetUp(stand int) (err error) {
+// GetUp tells the MiP to stand up. [GetUpMode] is the mode to stand up in.
+func (r *Robot) GetUp(stand GetUpMode) (err error) {
 	buf := []byte{GetUp, byte(stand)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return err
 }
 
-// DriveForward drives the MiP forward at a given speed for a given duration.
-func (r *Robot) DriveForward(speed uint8, duration uint8) (err error) {
-	buf := []byte{DriveForwardTime, speed, duration}
+// DriveForward drives the MiP forward at a given speed for a given duration (in ms)
+func (r *Robot) DriveForward(speed int, duration int) (err error) {
+	if speed > 30 {
+		speed = 30
+	}
+
+	// Time in 7ms intervals
+	buf := []byte{DriveForwardTime, byte(speed), byte(duration / 7)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return err
 }
 
-// DriveBackward drives the MiP backward at a given speed for a given duration.
-func (r *Robot) DriveBackward(speed uint8, duration uint8) (err error) {
-	buf := []byte{DriveBackwardTime, speed, duration}
+// DriveBackward drives the MiP backward at a given speed for a given duration (in ms)
+func (r *Robot) DriveBackward(speed int, duration int) (err error) {
+	if speed > 30 {
+		speed = 30
+	}
+
+	// Time in 7ms intervals
+	buf := []byte{DriveBackwardTime, byte(speed), byte(duration / 7)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return err
 }
 
 // TurnLeft turns the MiP left to a given angle at at given speed.
-func (r *Robot) TurnLeft(angle uint8, speed uint8) (err error) {
-	buf := []byte{TurnLeftAngle, angle, speed}
+func (r *Robot) TurnLeft(angle int, speed int) (err error) {
+	if speed > 24 {
+		speed = 24
+	}
+
+	// Angle is in intervals of 5 degrees
+	buf := []byte{TurnLeftAngle, byte(angle / 5), byte(speed)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return
 }
 
 // TurnRight turns the MiP right to a given angle at at given speed.
-func (r *Robot) TurnRight(angle uint8, speed uint8) (err error) {
-	buf := []byte{TurnRightAngle, angle, speed}
+func (r *Robot) TurnRight(angle int, speed int) (err error) {
+	if speed > 24 {
+		speed = 24
+	}
+
+	// Angle is in intervals of 5 degrees
+	buf := []byte{TurnRightAngle, byte(angle / 5), byte(speed)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return
@@ -152,6 +172,17 @@ func (r *Robot) TurnRight(angle uint8, speed uint8) (err error) {
 // SetGameMode tells the MiP to start playing a game using a [GameMode].
 func (r *Robot) SetGameMode(mode GameMode) (err error) {
 	buf := []byte{SetGameMode, byte(mode)}
+	_, err = r.sendData.WriteWithoutResponse(buf)
+
+	return err
+}
+
+// PlaySound tells the MiP to play a sound.
+// [Sound] file index (1~106) or send 0xF7-0xFE for volume control.
+// [Delay] in ms.
+func (r *Robot) PlaySound(sound Sound, delay int) (err error) {
+	// Delay in intervals of 30ms (0~255)
+	buf := []byte{PlaySound, byte(sound), byte(delay / 30)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return err
