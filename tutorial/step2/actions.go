@@ -11,9 +11,9 @@ func actions() {
 		println(err)
 	}
 
-	robot.DriveForward(30, 50)
+	robot.DriveForward(30, 500)
 	time.Sleep(3 * time.Second)
 
-	robot.DriveBackward(30, 50)
+	robot.DriveBackward(30, 500)
 	time.Sleep(3 * time.Second)
 }
