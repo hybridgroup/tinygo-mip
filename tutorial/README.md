@@ -6,7 +6,26 @@ This tutorial contains a series of small activities to help you learn how to con
 
 You will need to determine what the MAC address or Bluetooth ID is for the MiP robot you want to connect to.
 
-On Linux or Windows, the MAC address applies for a specific MiP on any computer. However on macOS, the Bluetooth ID for any given MiP robot will be different on each computer due to how macOS Bluetooth works.
+On Linux and Windows you will use the MAC address of the device to connect.
+
+On macOS you must use the Bluetooth ID of the device to connect.
+
+Therefore, you must know the correct name and then MAC address or ID for that device in order to connect to it.
+
+To find out the unique MAC address or Bluetooth ID for a device, you can use the Bluetooth scanner located in the tools directory of this repo.
+
+First, change so the current directory is the `tools` directory:
+
+```shell
+cd tools
+```
+
+Then, run the Bluetooth scanner command:
+
+```shell
+go run ./blescanner
+```
+
 
 ## The tutorial
 
@@ -86,6 +105,8 @@ tinygo flash -target badger2040-w -ldflags="-X main.DeviceAddress=[MAC address]"
 
 Gets ready and then does a little dance.
 
+#### Running on your computer
+
 ```shell
 go run ./step5/ [MAC address or Bluetooth ID]
 ```
@@ -106,6 +127,9 @@ Plug in the DS3 controller to your computer. The controls are as follows:
 * Right stick - direction
 
 IMPORTANT NOTE: you must press the "P3" button when your program first runs for the "clone" DS3 joysticks we are using to fully turn on.
+
+#### Running on your computer
+
 
 ```shell
 go run ./step6/ [MAC address or Bluetooth ID]
