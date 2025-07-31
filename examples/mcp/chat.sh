@@ -74,6 +74,7 @@ function callback() {
 }
 
 while true; do
+  STOPPED="false"
   USER_CONTENT=$(gum write --placeholder "🎤 What can I do for you?")
   
   if [[ "$USER_CONTENT" == "/bye" ]]; then
@@ -81,13 +82,16 @@ while true; do
     break
   fi
 
+  echo "🎤 ${USER_CONTENT}"
+
   # Add user message to conversation history
   add_user_message CONVERSATION_HISTORY "${USER_CONTENT}"
 
-  # Build messages array conversation history
-  MESSAGES=$(build_messages_array CONVERSATION_HISTORY)
+  while [ "$STOPPED" != "true" ]; do
+    # Build messages array conversation history
+    MESSAGES=$(build_messages_array CONVERSATION_HISTORY)
 
-  read -r -d '' DATA <<- EOM
+    read -r -d '' DATA <<- EOM
 {
   "model": "${MODEL}",
   "options": {
@@ -100,74 +104,61 @@ while true; do
 }
 EOM
 
-  echo "🎤 ${USER_CONTENT}"
-  RESULT=$(osprey_tool_calls ${DMR_BASE_URL} "${DATA}")
+    RESULT=$(osprey_tool_calls ${DMR_BASE_URL} "${DATA}")
 
-  if [[ "$DEBUG_MODE" == "true" ]]; then
-    echo "📝 raw JSON response:"
-    print_raw_response "${RESULT}"
-
-    echo ""
-    echo "🛠️ tool calls detected:"
-    print_tool_calls "${RESULT}"
-  fi
-
-  # Get tool calls for further processing
-  TOOL_CALLS=$(get_tool_calls "${RESULT}")
-
-  if [[ -n "$TOOL_CALLS" ]]; then
-      echo "⏳ making robot request..."
-    
-      add_tool_calls_message CONVERSATION_HISTORY "${TOOL_CALLS}"
-
-      for tool_call in $TOOL_CALLS; do
-          FUNCTION_NAME=$(get_function_name "$tool_call")
-          FUNCTION_ARGS=$(get_function_args "$tool_call")
-          CALL_ID=$(get_call_id "$tool_call")
-        
-          echo "🛠️ calling robot function: $FUNCTION_NAME with args: $FUNCTION_ARGS"
-        
-          # Execute function via MCP
-          MCP_RESPONSE=$(call_mcp_http_tool "$MCP_SERVER" "$FUNCTION_NAME" "$FUNCTION_ARGS")
-          RESULT_CONTENT=$(get_tool_content_http "$MCP_RESPONSE")
-        
-          echo "✅ robot result: $RESULT_CONTENT"
-          echo ""
-
-          TOOL_RESULT=$(echo "${RESULT_CONTENT}" | jq -r '.content')
-          add_tool_message CONVERSATION_HISTORY "${CALL_ID}" "${TOOL_RESULT}"
-      done
-  else
     if [[ "$DEBUG_MODE" == "true" ]]; then
-      echo "🔵 no tool calls found in response"
+      echo "📝 raw JSON response:"
+      print_raw_response "${RESULT}"
     fi
-  fi
 
-  # Build messages array conversation history
-  MESSAGES=$(build_messages_array CONVERSATION_HISTORY)
+    FINISH_REASON=$(get_finish_reason "${RESULT}")
+    case $FINISH_REASON in
+      tool_calls)
+        # Get tool calls for further processing
+        TOOL_CALLS=$(get_tool_calls "${RESULT}")
 
-  read -r -d '' DATA <<- EOM
-{
-  "model": "${MODEL}",
-  "options": {
-    "temperature": ${TEMPERATURE}
-  },
-  "messages": [${MESSAGES}],
-  "tools": ${TOOLS},
-  "parallel_tool_calls": true,
-  "tool_choice": "auto"
-}
-EOM
+        if [[ -n "$TOOL_CALLS" ]]; then
+            echo "⏳ making robot request..."
+            add_tool_calls_message CONVERSATION_HISTORY "${TOOL_CALLS}"
 
-  # Clear assistant response for this turn
-  ASSISTANT_RESPONSE=$(osprey_tool_calls ${DMR_BASE_URL} "${DATA}")
-  ASSISTANT_MESSAGE=$(echo "${ASSISTANT_RESPONSE}" | jq -r '.choices[0].message.content')
+            for tool_call in $TOOL_CALLS; do
+                FUNCTION_NAME=$(get_function_name "$tool_call")
+                FUNCTION_ARGS=$(get_function_args "$tool_call")
+                CALL_ID=$(get_call_id "$tool_call")
 
-  echo "🤖 ${ASSISTANT_MESSAGE}"
+                echo "🛠️ calling robot function: $FUNCTION_NAME with args: $FUNCTION_ARGS"
 
-  # Add assistant response to conversation history (from callback)
-  add_assistant_message CONVERSATION_HISTORY "${ASSISTANT_MESSAGE}"
-  
-  echo ""
+                # Execute function via MCP
+                MCP_RESPONSE=$(call_mcp_http_tool "$MCP_SERVER" "$FUNCTION_NAME" "$FUNCTION_ARGS")
+                RESULT_CONTENT=$(get_tool_content_http "$MCP_RESPONSE")
+
+                echo "✅ robot result: $RESULT_CONTENT"
+                echo ""
+
+                TOOL_RESULT=$(echo "${RESULT_CONTENT}" | jq -r '.content')
+                add_tool_message CONVERSATION_HISTORY "${CALL_ID}" "${TOOL_RESULT}"
+            done
+        else
+          if [[ "$DEBUG_MODE" == "true" ]]; then
+            echo "🔵 no tool calls found in response"
+          fi
+        fi
+        ;;
+
+      stop)
+        STOPPED="true"
+        ASSISTANT_MESSAGE=$(echo "${RESULT}" | jq -r '.choices[0].message.content')
+        echo "🤖 ${ASSISTANT_MESSAGE}"
+
+        # Add assistant response to conversation history (from callback)
+        add_assistant_message CONVERSATION_HISTORY "${ASSISTANT_MESSAGE}"
+        ;;
+
+      *)
+        echo "🔵 unexpected finish reason"
+        ;;
+    esac
+
+  done
   echo ""
 done
