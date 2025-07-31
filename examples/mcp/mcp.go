@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"image/color"
 	"log"
@@ -59,31 +60,32 @@ func addToolChestLED() {
 }
 
 func chestLEDToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "set_chest_led"
 	red, err := request.RequireInt("red")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	green, err := request.RequireInt("green")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	blue, err := request.RequireInt("blue")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.SetChestLED(color.RGBA{R: uint8(red), G: uint8(green), B: uint8(blue)})
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("chest LED set to RGB %d, %d, %d", red, green, blue)), nil
+	return mcpSuccess(name, fmt.Sprintf("chest LED set to RGB %d, %d, %d", red, green, blue)), nil
 }
 
 func addToolFlashChestLED() {
@@ -115,41 +117,42 @@ func addToolFlashChestLED() {
 }
 
 func flashChestLEDToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "flash_chest_led"
 	red, err := request.RequireInt("red")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	green, err := request.RequireInt("green")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	blue, err := request.RequireInt("blue")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	on, err := request.RequireInt("on")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	off, err := request.RequireInt("off")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.FlashChestLED(color.RGBA{R: uint8(red), G: uint8(green), B: uint8(blue)}, on, off)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("flash LED set to RGB %d, %d, %d with on %d/off %d", red, green, blue, on, off)), nil
+	return mcpSuccess(name, fmt.Sprintf("flash LED set to RGB %d, %d, %d with on %d/off %d", red, green, blue, on, off)), nil
 }
 
 func addToolHeadLED() {
@@ -177,36 +180,37 @@ func addToolHeadLED() {
 }
 
 func headLEDToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "set_head_led"
 	l1, err := request.RequireInt("l1")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	l2, err := request.RequireInt("l2")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	l3, err := request.RequireInt("l3")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	l4, err := request.RequireInt("l4")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.SetHeadLED(mip.HeadLED(l1), mip.HeadLED(l2), mip.HeadLED(l3), mip.HeadLED(l4))
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("Head LED set to %d, %d, %d, %d", l1, l2, l3, l4)), nil
+	return mcpSuccess(name, fmt.Sprintf("Head LED set to %d, %d, %d, %d", l1, l2, l3, l4)), nil
 }
 
 func addToolGetUp() {
@@ -222,21 +226,22 @@ func addToolGetUp() {
 }
 
 func getUpToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "get_up"
 	mode, err := request.RequireInt("mode")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.GetUp(mip.GetUpMode(mode))
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("getting up with mode %d", mode)), nil
+	return mcpSuccess(name, fmt.Sprintf("getting up with mode %d", mode)), nil
 }
 
 func addToolDriveForward() {
@@ -256,26 +261,27 @@ func addToolDriveForward() {
 }
 
 func driveForwardToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "drive_forward"
 	speed, err := request.RequireInt("speed")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	duration, err := request.RequireInt("duration")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.DriveForward(speed, duration)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("driving forward at speed %d, duration %d", speed, duration)), nil
+	return mcpSuccess(name, fmt.Sprintf("driving forward at speed %d, duration %d", speed, duration)), nil
 }
 
 func addToolDriveBackward() {
@@ -295,26 +301,27 @@ func addToolDriveBackward() {
 }
 
 func driveBackwardToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "drive_backward"
 	speed, err := request.RequireInt("speed")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	duration, err := request.RequireInt("duration")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.DriveBackward(speed, duration)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("driving backward at speed %d, duration %d", speed, duration)), nil
+	return mcpSuccess(name, fmt.Sprintf("driving backward at speed %d, duration %d", speed, duration)), nil
 }
 
 func addToolTurnLeft() {
@@ -334,26 +341,27 @@ func addToolTurnLeft() {
 }
 
 func turnLeftToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "turn_left"
 	angle, err := request.RequireInt("angle")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	speed, err := request.RequireInt("speed")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.TurnLeft(angle, speed)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("turning left at angle %d, speed %d", angle, speed)), nil
+	return mcpSuccess(name, fmt.Sprintf("turning left at angle %d, speed %d", angle, speed)), nil
 }
 
 func addToolTurnRight() {
@@ -373,26 +381,27 @@ func addToolTurnRight() {
 }
 
 func turnRightToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "turn_right"
 	angle, err := request.RequireInt("angle")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	speed, err := request.RequireInt("speed")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.TurnRight(angle, speed)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("turning right at angle %d, speed %d", angle, speed)), nil
+	return mcpSuccess(name, fmt.Sprintf("turning right at angle %d, speed %d", angle, speed)), nil
 }
 
 func addToolPlaySound() {
@@ -412,24 +421,33 @@ func addToolPlaySound() {
 }
 
 func playSoundToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name := "play_sound"
 	sound, err := request.RequireInt("sound")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	delay, err := request.RequireInt("delay")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
 	if robot == nil {
-		return mcp.NewToolResultError("MIP robot not available"), nil
+		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
 	err = robot.PlaySound(mip.Sound(sound), delay)
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return mcpError(name, err), nil
 	}
 
-	return mcp.NewToolResultText(fmt.Sprintf("playing sound %d, delay %d", sound, delay)), nil
+	return mcpSuccess(name, fmt.Sprintf("playing sound %d, delay %d", sound, delay)), nil
+}
+
+func mcpSuccess(name, content string) *mcp.CallToolResult {
+	return mcp.NewToolResultText(fmt.Sprintf("{\"tool_name\": \"%s\", \"content\": \"%s\"}", name, content))
+}
+
+func mcpError(name string, err error) *mcp.CallToolResult {
+	return mcp.NewToolResultError(fmt.Sprintf("{\"tool_name\": \"%s\", \"error\": \"%s\"}", name, err.Error()))
 }

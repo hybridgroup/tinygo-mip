@@ -13,6 +13,11 @@ DMR_BASE_URL=${MODEL_RUNNER_BASE_URL:-http://localhost:12434/engines/llama.cpp/v
 MODEL=${MODEL_RUNNER_TOOL_MODEL:-"ai/qwen2.5:latest"}
 TEMPERATURE=${MODEL_RUNNER_TEMPERATURE:-"0.0"}
 
+DEBUG_MODE=false
+if [ "$1" = "-d" ] || [ "$1" = "--debug" ]; then
+  DEBUG_MODE=true
+fi
+
 clear
 
 echo " ▄▄       ▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄       ▄▄       ▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄ ";
@@ -45,7 +50,7 @@ EOM
 MCP_TOOLS=$(get_mcp_http_tools "$MCP_SERVER")
 TOOLS=$(transform_to_openai_format "$MCP_TOOLS")
 
-if [ "$1" = "-d" ] || [ "$1" = "--debug" ]; then
+if [[ "$DEBUG_MODE" == "true" ]]; then
   echo "---------------------------------------------------------"
   echo "Available tools:"
   echo "${TOOLS}" 
@@ -57,11 +62,14 @@ Example of commands to send to your MiP robot:
 Turn the chest LED purple
 COMMENT
 
+# needed to handle the ASSISTANT_RESPONSE being created from a subprocess.
+shopt -s lastpipe
+
 # Initialize conversation history array
 CONVERSATION_HISTORY=()
+ASSISTANT_RESPONSE=""
 
 function callback() {
-  echo -ne "$1"
   ASSISTANT_RESPONSE+="$1"
 }
 
@@ -73,22 +81,19 @@ while true; do
     break
   fi
 
+  # Add user message to conversation history
+  add_user_message CONVERSATION_HISTORY "${USER_CONTENT}"
+
+  # Build messages array conversation history
+  MESSAGES=$(build_messages_array CONVERSATION_HISTORY)
+
   read -r -d '' DATA <<- EOM
 {
   "model": "${MODEL}",
   "options": {
     "temperature": ${TEMPERATURE}
   },
-  "messages": [
-    {
-      "role":"system",
-      "content": "${SYSTEM_INSTRUCTION}"
-    },
-    {
-      "role": "user",
-      "content": "${USER_CONTENT}"
-    }
-  ],
+  "messages": [${MESSAGES}],
   "tools": ${TOOLS},
   "parallel_tool_calls": true,
   "tool_choice": "auto"
@@ -98,7 +103,7 @@ EOM
   echo "🎤 ${USER_CONTENT}"
   RESULT=$(osprey_tool_calls ${DMR_BASE_URL} "${DATA}")
 
-  if [ "$1" = "-d" ] || [ "$1" = "--debug" ]; then
+  if [[ "$DEBUG_MODE" == "true" ]]; then
     echo "📝 raw JSON response:"
     print_raw_response "${RESULT}"
 
@@ -113,6 +118,8 @@ EOM
   if [[ -n "$TOOL_CALLS" ]]; then
       echo "⏳ making robot request..."
     
+      add_tool_calls_message CONVERSATION_HISTORY "${TOOL_CALLS}"
+
       for tool_call in $TOOL_CALLS; do
           FUNCTION_NAME=$(get_function_name "$tool_call")
           FUNCTION_ARGS=$(get_function_args "$tool_call")
@@ -126,43 +133,40 @@ EOM
         
           echo "✅ robot result: $RESULT_CONTENT"
           echo ""
-          TOOL_CALLS_RESULTS+="- $RESULT_CONTENT"$'\n'
+
+          TOOL_RESULT=$(echo "${RESULT_CONTENT}" | jq -r '.content')
+          add_tool_message CONVERSATION_HISTORY "${CALL_ID}" "${TOOL_RESULT}"
       done
   else
-    if [ "$1" = "-d" ] || [ "$1" = "--debug" ]; then
+    if [[ "$DEBUG_MODE" == "true" ]]; then
       echo "🔵 no tool calls found in response"
     fi
   fi
 
-  # Add tool calls results to system message
-  add_system_message CONVERSATION_HISTORY "${TOOL_CALLS_RESULTS}"
-
-  # Add user message to conversation history
-  add_user_message CONVERSATION_HISTORY "${USER_CONTENT}"
-
-  # Build messages array with system message and conversation history
+  # Build messages array conversation history
   MESSAGES=$(build_messages_array CONVERSATION_HISTORY)
 
   read -r -d '' DATA <<- EOM
 {
-  "model":"${MODEL}",
+  "model": "${MODEL}",
   "options": {
-    "temperature": 0.5,
-    "repeat_last_n": 256
+    "temperature": ${TEMPERATURE}
   },
   "messages": [${MESSAGES}],
-  "stream": true
+  "tools": ${TOOLS},
+  "parallel_tool_calls": true,
+  "tool_choice": "auto"
 }
 EOM
 
   # Clear assistant response for this turn
-  ASSISTANT_RESPONSE=""
-  echo -ne "🤖 "
+  ASSISTANT_RESPONSE=$(osprey_tool_calls ${DMR_BASE_URL} "${DATA}")
+  ASSISTANT_MESSAGE=$(echo "${ASSISTANT_RESPONSE}" | jq -r '.choices[0].message.content')
 
-  osprey_chat_stream ${DMR_BASE_URL} "${DATA}" callback
-  
+  echo "🤖 ${ASSISTANT_MESSAGE}"
+
   # Add assistant response to conversation history (from callback)
-  add_assistant_message CONVERSATION_HISTORY "${ASSISTANT_RESPONSE}"
+  add_assistant_message CONVERSATION_HISTORY "${ASSISTANT_MESSAGE}"
   
   echo ""
   echo ""
