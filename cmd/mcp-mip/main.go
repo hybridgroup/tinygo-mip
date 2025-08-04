@@ -79,6 +79,7 @@ func init() {
 		}
 
 		if robot != nil {
+			println("exiting...")
 			robot.Stop()
 			device.Disconnect()
 		}

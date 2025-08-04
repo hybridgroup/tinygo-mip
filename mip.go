@@ -117,53 +117,49 @@ func (r *Robot) GetUp(stand GetUpMode) (err error) {
 	return err
 }
 
-// DriveForward drives the MiP forward at a given speed for a given duration (in ms)
+// DriveForward drives the MiP forward at a given speed (0-100) for a given duration (in ms)
 func (r *Robot) DriveForward(speed int, duration int) (err error) {
-	if speed > 30 {
-		speed = 30
-	}
+	speed = int((speed % 101) * 3 / 10)
+	duration = int((duration % 1786) / 7)
 
 	// Time in 7ms intervals
-	buf := []byte{DriveForwardTime, byte(speed), byte(duration / 7)}
+	buf := []byte{DriveForwardTime, byte(speed), byte(duration)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return err
 }
 
-// DriveBackward drives the MiP backward at a given speed for a given duration (in ms)
+// DriveBackward drives the MiP backward at a given speed (0-100) for a given duration (in ms)
 func (r *Robot) DriveBackward(speed int, duration int) (err error) {
-	if speed > 30 {
-		speed = 30
-	}
+	speed = int((speed % 101) * 3 / 10)
+	duration = int((duration % 1786) / 7)
 
 	// Time in 7ms intervals
-	buf := []byte{DriveBackwardTime, byte(speed), byte(duration / 7)}
+	buf := []byte{DriveBackwardTime, byte(speed), byte(duration)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return err
 }
 
-// TurnLeft turns the MiP left to a given angle at at given speed.
+// TurnLeft turns the MiP left to a given angle at at given speed (0-100).
 func (r *Robot) TurnLeft(angle int, speed int) (err error) {
-	if speed > 24 {
-		speed = 24
-	}
-
 	// Angle is in intervals of 5 degrees
-	buf := []byte{TurnLeftAngle, byte(angle / 5), byte(speed)}
+	angle = int((angle % 1276) / 5)
+	speed = int((speed % 101) * 24 / 100)
+
+	buf := []byte{TurnLeftAngle, byte(angle), byte(speed)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return
 }
 
-// TurnRight turns the MiP right to a given angle at at given speed.
+// TurnRight turns the MiP right to a given angle at at given speed (0-100).
 func (r *Robot) TurnRight(angle int, speed int) (err error) {
-	if speed > 24 {
-		speed = 24
-	}
-
 	// Angle is in intervals of 5 degrees
-	buf := []byte{TurnRightAngle, byte(angle / 5), byte(speed)}
+	angle = int((angle % 1276) / 5)
+	speed = int((speed % 101) * 24 / 100)
+
+	buf := []byte{TurnRightAngle, byte(angle), byte(speed)}
 	_, err = r.sendData.WriteWithoutResponse(buf)
 
 	return

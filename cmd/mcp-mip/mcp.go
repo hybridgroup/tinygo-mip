@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"sync"
+	"time"
 
 	mip "github.com/hybridgroup/tinygo-mip"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -14,6 +16,8 @@ import (
 
 var s *server.MCPServer
 var httpSrv *server.StreamableHTTPServer
+
+var mu sync.Mutex
 
 func startMCP(port string) {
 	s = server.NewMCPServer(
@@ -79,6 +83,9 @@ func chestLEDToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp
 	if robot == nil {
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	err = robot.SetChestLED(color.RGBA{R: uint8(red), G: uint8(green), B: uint8(blue)})
 	if err != nil {
@@ -147,6 +154,9 @@ func flashChestLEDToolHandler(ctx context.Context, request mcp.CallToolRequest) 
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	err = robot.FlashChestLED(color.RGBA{R: uint8(red), G: uint8(green), B: uint8(blue)}, on, off)
 	if err != nil {
 		return mcpError(name, err), nil
@@ -205,6 +215,9 @@ func headLEDToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	err = robot.SetHeadLED(mip.HeadLED(l1), mip.HeadLED(l2), mip.HeadLED(l3), mip.HeadLED(l4))
 	if err != nil {
 		return mcpError(name, err), nil
@@ -215,7 +228,7 @@ func headLEDToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 
 func addToolGetUp() {
 	tool := mcp.NewTool("get_up",
-		mcp.WithDescription("Makes the MiP robot stand up. "),
+		mcp.WithDescription("Makes the robot stand up. 0x02 to get up when mip has fallen either back or front."),
 		mcp.WithNumber("mode",
 			mcp.Description("Get up mode. 0x02 to get up when mip has fallen either back or front"),
 			mcp.Required(),
@@ -236,6 +249,9 @@ func getUpToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	err = robot.GetUp(mip.GetUpMode(mode))
 	if err != nil {
 		return mcpError(name, err), nil
@@ -246,13 +262,13 @@ func getUpToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 
 func addToolDriveForward() {
 	tool := mcp.NewTool("drive_forward",
-		mcp.WithDescription("Drive forward"),
+		mcp.WithDescription("Drive forward at a specific speed for a specific length of time (maximum time is 1785 milliseconds)."),
 		mcp.WithNumber("speed",
-			mcp.Description("Speed (0~30)"),
+			mcp.Description("Speed (0~100)"),
 			mcp.Required(),
 		),
 		mcp.WithNumber("duration",
-			mcp.Description("Time in 7ms intervals (0~255)"),
+			mcp.Description("Time in milliseconds (maximum 1785 milliseconds)"),
 			mcp.Required(),
 		),
 	)
@@ -276,23 +292,28 @@ func driveForwardToolHandler(ctx context.Context, request mcp.CallToolRequest) (
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	err = robot.DriveForward(speed, duration)
 	if err != nil {
 		return mcpError(name, err), nil
 	}
+
+	time.Sleep(time.Duration(duration) * time.Millisecond)
 
 	return mcpSuccess(name, fmt.Sprintf("driving forward at speed %d, duration %d", speed, duration)), nil
 }
 
 func addToolDriveBackward() {
 	tool := mcp.NewTool("drive_backward",
-		mcp.WithDescription("Drive backward"),
+		mcp.WithDescription("Drive backward at a specific speed for a specific length of time (maximum time is 1785 milliseconds)."),
 		mcp.WithNumber("speed",
-			mcp.Description("Speed (0~30)"),
+			mcp.Description("Speed (0~100)"),
 			mcp.Required(),
 		),
 		mcp.WithNumber("duration",
-			mcp.Description("Time in 7ms intervals (0~255)"),
+			mcp.Description("Time in milliseconds (maximum 1785 milliseconds)"),
 			mcp.Required(),
 		),
 	)
@@ -316,23 +337,28 @@ func driveBackwardToolHandler(ctx context.Context, request mcp.CallToolRequest) 
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	err = robot.DriveBackward(speed, duration)
 	if err != nil {
 		return mcpError(name, err), nil
 	}
+
+	time.Sleep(time.Duration(duration) * time.Millisecond)
 
 	return mcpSuccess(name, fmt.Sprintf("driving backward at speed %d, duration %d", speed, duration)), nil
 }
 
 func addToolTurnLeft() {
 	tool := mcp.NewTool("turn_left",
-		mcp.WithDescription("Turn left"),
+		mcp.WithDescription("Turn the MiP robot left."),
 		mcp.WithNumber("angle",
-			mcp.Description("Angle in intervals of 5 degrees (0~255)"),
+			mcp.Description("Angle for turn in degrees."),
 			mcp.Required(),
 		),
 		mcp.WithNumber("speed",
-			mcp.Description("Speed (0~24)"),
+			mcp.Description("Speed (between 0 and 100)"),
 			mcp.Required(),
 		),
 	)
@@ -356,23 +382,28 @@ func turnLeftToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	err = robot.TurnLeft(angle, speed)
 	if err != nil {
 		return mcpError(name, err), nil
 	}
+
+	time.Sleep(time.Duration(angle*(64/36)/(speed+1)) * time.Millisecond)
 
 	return mcpSuccess(name, fmt.Sprintf("turning left at angle %d, speed %d", angle, speed)), nil
 }
 
 func addToolTurnRight() {
 	tool := mcp.NewTool("turn_right",
-		mcp.WithDescription("Turn right"),
+		mcp.WithDescription("Turn the MiP robot right."),
 		mcp.WithNumber("angle",
-			mcp.Description("Angle in intervals of 5 degrees (0~255)"),
+			mcp.Description("Angle for turn in degrees."),
 			mcp.Required(),
 		),
 		mcp.WithNumber("speed",
-			mcp.Description("Speed (0~24)"),
+			mcp.Description("Speed (between 0 and 100)"),
 			mcp.Required(),
 		),
 	)
@@ -396,10 +427,15 @@ func turnRightToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mc
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	err = robot.TurnRight(angle, speed)
 	if err != nil {
 		return mcpError(name, err), nil
 	}
+
+	time.Sleep(time.Duration(angle*(64/36)/(speed+1)) * time.Millisecond)
 
 	return mcpSuccess(name, fmt.Sprintf("turning right at angle %d, speed %d", angle, speed)), nil
 }
@@ -436,6 +472,9 @@ func playSoundToolHandler(ctx context.Context, request mcp.CallToolRequest) (*mc
 		return mcpError(name, errors.New("MIP robot not available")), nil
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	err = robot.PlaySound(mip.Sound(sound), delay)
 	if err != nil {
 		return mcpError(name, err), nil
@@ -449,5 +488,6 @@ func mcpSuccess(name, content string) *mcp.CallToolResult {
 }
 
 func mcpError(name string, err error) *mcp.CallToolResult {
+	log.Printf("{\"tool_name\": \"%s\", \"error\": \"%s\"}", name, err.Error())
 	return mcp.NewToolResultError(fmt.Sprintf("{\"tool_name\": \"%s\", \"error\": \"%s\"}", name, err.Error()))
 }
