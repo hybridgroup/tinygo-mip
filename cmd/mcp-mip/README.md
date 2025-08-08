@@ -2,10 +2,10 @@
 
 This program creates an [MCP server](https://modelcontextprotocol.io/overview) that provides tools for controlling the MiP robot from any model that has tool calling support.
 
-## Building
+## Install
 
 ```shell
-go build -o mcp-mip .
+go install github.com/hybridgroup/tinygo-mip/cmd/mcp-mip@latest
 ```
 
 ## Running
