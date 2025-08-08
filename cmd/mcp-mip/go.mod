@@ -2,10 +2,8 @@ module github.com/hybridgroup/tinygo-mip/cmd/mcp-mip
 
 go 1.24.4
 
-replace github.com/hybridgroup/tinygo-mip => ../..
-
 require (
-	github.com/hybridgroup/tinygo-mip v0.0.0-20250616092630-39c423043417
+	github.com/hybridgroup/tinygo-mip v0.0.0-20250804164933-b4a67ccc0ba3
 	github.com/mark3labs/mcp-go v0.36.0
 	tinygo.org/x/bluetooth v0.12.0
 )
