@@ -12,20 +12,19 @@ On macOS you must use the Bluetooth ID of the device to connect.
 
 Therefore, you must know the correct name and then MAC address or ID for that device in order to connect to it.
 
-To find out the unique MAC address or Bluetooth ID for a device, you can use the Bluetooth scanner located in the tools directory of this repo.
-
-First, change so the current directory is the `tools` directory:
+First, install the Bluetooth scanner command:
 
 ```shell
-cd tools
+go install ./cmd/blescanner
 ```
 
-Then, run the Bluetooth scanner command:
+Then, run the command:
 
 ```shell
-go run ./blescanner
+blescanner
 ```
 
+It should show the names of the various Bluetooth devices around you, including the MiP you want to connect to.
 
 ## The tutorial
 

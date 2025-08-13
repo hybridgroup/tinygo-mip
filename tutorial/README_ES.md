@@ -14,16 +14,16 @@ Por lo tanto, debes conocer el nombre correcto y luego la dirección MAC o ID de
 
 Para averiguar la dirección MAC única o el ID Bluetooth de un dispositivo, puedes utilizar el escáner Bluetooth que se encuentra en el directorio de herramientas de esta repo.
 
-Primero, cambia el directorio actual al directorio `tools`:
+Primero, instalar el comando del escáner de Bluetooth:
 
 ```shell
-cd tools
+go install ./cmd/blescanner
 ```
 
 A continuación, ejecuta el comando del escáner de Bluetooth:
 
 ```shell
-go run ./blescanner
+blescanner
 ```
 
 ## El tutorial
